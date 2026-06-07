@@ -1,55 +1,104 @@
-# PDF Text Search and Annotation
+# PDF Text Search and Annotation (`pdfmark`)
 
-Production-style utility for searching PDF documents and applying highlights, underlines, redactions, or bounding boxes using PyMuPDF.
+Installable Python package for searching PDF documents and applying highlights, underlines, redactions, frames, or removing existing annotations.
 
-## Problem
-
-Manually finding and marking sensitive or important text in large PDF corpora is slow and error-prone.
-
-## Approach
-
-1. Extract page text line by line
-2. Match user-supplied regex patterns (case insensitive)
-3. Apply annotation action per match: Highlight, Squiggly, Underline, Strikeout, Redact, Frame, or Remove
-
-Core logic lives in `utils.py` with a CLI for batch processing.
-
-## Repository structure
-
-```
-utils.py                              Reusable PDF processing library
-highlight textual values in PDF.ipynb Interactive exploration
-requirements.txt                      Dependencies
-```
-
-## Reproducibility
+## Install
 
 ```bash
+pip install pymupdf
+pip install git+https://github.com/baban9/highlight-specific-text-inside-the-PDF.git
+```
+
+Local development:
+
+```bash
+git clone https://github.com/baban9/highlight-specific-text-inside-the-PDF.git
+cd highlight-specific-text-inside-the-PDF
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e ".[dev]"
+```
+
+## CLI
+
+Annotate one file:
+
+```bash
+pdfmark annotate input.pdf output.pdf --search "Invoice" --action Highlight
+pdfmark annotate input.pdf output.pdf --search "SSN" --action Redact --pages 0 2
+pdfmark annotate input.pdf output.pdf --search "" --action Remove
+```
+
+Batch process a folder:
+
+```bash
+pdfmark batch ./input_pdfs ./output_pdfs --search "CONFIDENTIAL" --action Redact
+```
+
+Inspect metadata:
+
+```bash
+pdfmark info input.pdf
+```
+
+### Supported actions
+
+| Action | Description |
+|--------|-------------|
+| `Highlight` | Yellow highlight (default) |
+| `Squiggly` | Squiggly underline |
+| `Underline` | Straight underline |
+| `Strikeout` | Strikethrough |
+| `Redact` | Black out matched text |
+| `Frame` | Red bounding box |
+| `Remove` | Delete all annotations on selected pages |
+
+## Python API
+
+```python
+from pdfmark import PDFAnnotator, annotate_pdf, batch_annotate
+from pdfmark.models import Action
+
+result = annotate_pdf(
+    input_file="input.pdf",
+    output_file="output.pdf",
+    pattern=r"ABC123",
+    action=Action.HIGHLIGHT,
+)
+print(result.matches)
+
+annotator = PDFAnnotator(pattern=r"invoice", action=Action.UNDERLINE)
+annotator.annotate("input.pdf", "underlined.pdf")
+
+results = batch_annotate("input_dir/", "output_dir/", pattern=r"secret", action=Action.REDACT)
+```
+
+## Project layout
+
+```
+src/pdfmark/          Package source
+  annotator.py        Core annotation engine
+  cli.py              pdfmark command-line tool
+  models.py           Action enum and ProcessResult
+  search.py           Regex search helpers
+examples/             Usage samples
+tests/                Pytest suite
+utils.py              Legacy import shim
+```
+
+## Development
+
+```bash
 make setup
-```
-
-CLI:
-
-```bash
-python utils.py input.pdf output.pdf --search "PATTERN" --action Highlight
-python utils.py input.pdf output.pdf --search "invoice" --action Redact --pages 0 2
-```
-
-Run tests:
-
-```bash
 make test
+make build
 ```
 
-## Tech stack
+## Requirements
 
-Python 3, PyMuPDF (fitz)
+- Python 3.9+
+- PyMuPDF
 
-## Limitations and next steps
+## License
 
-- Add batch mode for directory of PDFs
-- Support password-protected PDFs with explicit unlock flow
-- Publish as installable package with pytest coverage per action type
+MIT

@@ -1,17 +1,24 @@
-"""Smoke tests for PDF utilities."""
+"""Legacy import compatibility."""
 
-import re
-
-from utils import search_for_text, ACTIONS
+from utils import ACTIONS, process_pdf, search_for_text
 
 
-def test_search_for_text_finds_case_insensitive_match():
-    lines = ["Invoice Number: ABC123", "Total due: 500"]
-    matches = list(search_for_text(lines, r"abc\d+"))
-    assert matches == ["ABC123"]
-
-
-def test_actions_include_expected_values():
+def test_legacy_utils_exports():
     assert "Highlight" in ACTIONS
-    assert "Redact" in ACTIONS
-    assert "Remove" in ACTIONS
+
+
+def test_legacy_search_helper():
+    lines = ["Invoice Number: ABC123"]
+    assert list(search_for_text(lines, r"abc\d+")) == ["ABC123"]
+
+
+def test_legacy_process_pdf_signature(sample_pdf, tmp_path):
+    output_pdf = tmp_path / "legacy.pdf"
+    result = process_pdf(
+        str(sample_pdf),
+        str(output_pdf),
+        search_str=r"ABC123",
+        action="Highlight",
+    )
+    assert result.matches == 1
+    assert output_pdf.exists()
